@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Share Your Experience</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Tailwind CDN (no build tools) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    /* ============================
+       3) CONFIG — edit as needed
+       ============================ */
+    const CONFIG = {
+      serviceName: "ReviewFlow",
+      restaurantName: "Your Restaurant",
+      googlePlaceId: "", // If empty, Post button disabled with tooltip
+      negativeFeedbackEndpoint: "", // If provided, app will POST negative feedback JSON
+      brandPrimary: "#b91c1c", // refined red
+      locale: "en",
+      useEmojis: true,
+    };
+  </script>
+  <style>
+    :root {
+      --brand: #b91c1c;
+      --brand-600: #b91c1c;
+      --brand-700: #991b1b;
+      --brand-50:  #fef2f2;
+    }
+    .brand-bg  { background-color: var(--brand) }
+    .brand-txt { color: var(--brand) }
+    .brand-ring{ --tw-ring-color: var(--brand) }
+    .brand-border{ border-color: var(--brand) }
+    .brand-bg-50{ background-color: var(--brand-50) }
+    .brand-bg-600{ background-color: var(--brand-600) }
+    .brand-bg-700{ background-color: var(--brand-700) }
+    .step-dot { width: 12px; height: 12px; }
+    .smooth { transition: all 220ms ease; }
+    /* Tooltip helper */
+    .tooltip:focus .tooltip-panel,
+    .tooltip:hover .tooltip-panel { opacity: 1; transform: translateY(0) }
+    .tooltip-panel { opacity: 0; transform: translateY(2px); }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-stone-50 to-stone-200 text-slate-800 antialiased">
+  <main class="mx-auto max-w-3xl px-4 py-10">
+    <!-- Card -->
+    <section class="mx-auto max-w-2xl rounded-2xl bg-white shadow-xl ring-1 ring-black/5 smooth">
+      <!-- Header / Brand -->
+      <header class="p-6 sm:p-8 border-b border-slate-100">
+        <h1 id="pageTitle" class="text-2xl sm:text-3xl font-semibold tracking-tight">
+          Share your experience at <span class="brand-txt" id="brandName"></span>
+        </h1>
+        <p class="mt-2 text-sm text-slate-500">A quick, two-minute flow.</p>
+
+        <!-- Stepper -->
+        <nav aria-label="Progress" class="mt-6">
+          <ol class="grid grid-cols-5 gap-2 sm:gap-4 text-[11px] sm:text-xs text-slate-600">
+            <!-- Each li is a step with a dot and label -->
+            <li class="flex flex-col items-center" data-step-index="0">
+              <span class="step-dot rounded-full border border-slate-300 smooth" aria-hidden="true"></span>
+              <span class="mt-1">Experience</span>
+            </li>
+            <li class="flex flex-col items-center" data-step-index="1">
+              <span class="step-dot rounded-full border border-slate-300 smooth" aria-hidden="true"></span>
+              <span class="mt-1">Dish</span>
+            </li>
+            <li class="flex flex-col items-center" data-step-index="2">
+              <span class="step-dot rounded-full border border-slate-300 smooth" aria-hidden="true"></span>
+              <span class="mt-1">Highlight</span>
+            </li>
+            <li class="flex flex-col items-center" data-step-index="3">
+              <span class="step-dot rounded-full border border-slate-300 smooth" aria-hidden="true"></span>
+              <span class="mt-1">Review</span>
+            </li>
+            <li class="flex flex-col items-center" data-step-index="4">
+              <span class="step-dot rounded-full border border-slate-300 smooth" aria-hidden="true"></span>
+              <span class="mt-1">Post</span>
+            </li>
+          </ol>
+        </nav>
+      </header>
+
+      <!-- Content -->
+      <div class="p-6 sm:p-8 space-y-8">
+        <!-- Step 1 — Experience -->
+        <section id="step-1" role="region" aria-labelledby="s1-title" class="smooth">
+          <h2 id="s1-title" class="text-xl sm:text-2xl font-semibold">
+            <span id="s1-emoji" aria-hidden="true"></span> How was your experience today?
+          </h2>
+          <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button type="button" id="btn-excellent"
+              class="group w-full rounded-xl border border-slate-200 bg-white px-4 py-5 text-left shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 brand-ring smooth"
+              aria-label="Select Excellent experience">
+              <div class="text-2xl" aria-hidden="true">🤩</div>
+              <div class="mt-1 text-base font-medium">Excellent</div>
+              <p class="text-sm text-slate-500">Everything sang.</p>
+            </button>
+            <button type="button" id="btn-good"
+              class="group w-full rounded-xl border border-slate-200 bg-white px-4 py-5 text-left shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 brand-ring smooth"
+              aria-label="Select Good experience">
+              <div class="text-2xl" aria-hidden="true">🙂</div>
+              <div class="mt-1 text-base font-medium">Good</div>
+              <p class="text-sm text-slate-500">Worth sharing.</p>
+            </button>
+            <button type="button" id="btn-bad"
+              class="group w-full rounded-xl border border-slate-200 bg-white px-4 py-5 text-left shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 brand-ring smooth"
+              aria-label="Select Not great experience">
+              <div class="text-2xl" aria-hidden="true">😕</div>
+              <div class="mt-1 text-base font-medium">Not great</div>
+              <p class="text-sm text-slate-500">We’d like to know.</p>
+            </button>
+          </div>
+        </section>
+
+        <!-- Step 2 — Select Dish -->
+        <section id="step-2" class="hidden smooth" role="region" aria-labelledby="s2-title" aria-hidden="true">
+          <h2 id="s2-title" class="text-xl sm:text-2xl font-semibold">Select a dish</h2>
+          <!-- Search + categories -->
+          <div class="mt-4 flex flex-col gap-3">
+            <label class="block text-sm font-medium text-slate-700" for="dishSearch">Search dish… (e.g., shawarma, lamb, salmon)</label>
+            <div class="relative">
+              <input id="dishSearch" type="search" inputmode="search" autocomplete="off"
+                class="w-full rounded-lg border-slate-300 focus:border-slate-400 focus:ring-2 brand-ring pr-10"
+                placeholder="Type to filter by name, description, or alias" aria-describedby="clearSearchHelp" />
+              <button id="clearSearch" class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 brand-ring smooth"
+                aria-label="Clear search" title="Clear">✕</button>
+            </div>
+            <p id="clearSearchHelp" class="sr-only">Use the clear button to reset your search.</p>
+
+            <!-- Category chips -->
+            <div class="flex flex-wrap gap-2" role="tablist" aria-label="Dish categories">
+              <!-- Chips injected by JS -->
+              <div id="categoryChips" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+
+          <!-- Scrollable list -->
+          <div class="mt-4">
+            <div class="max-h-[48vh] overflow-y-auto rounded-xl border border-slate-200" id="dishList" role="listbox" aria-label="Menu items">
+              <!-- Items injected by JS -->
+            </div>
+            <p id="saladAddOnsNote" class="hidden mt-3 text-sm text-slate-500">
+              Add-ons for salads (display only): Feta Cheese 2.00, Grilled Chicken 10.00, Shrimp 12.00, Salmon 15.00, Adana 12.00, Chicken Adana 10.00.
+            </p>
+          </div>
+
+          <!-- Controls -->
+          <div class="mt-5 flex items-center justify-between gap-3">
+            <button type="button" class="btn-back rounded-lg border border-slate-300 px-4 py-2 text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 brand-ring smooth" data-back-step="1" aria-label="Go back to Experience">Back</button>
+            <button type="button" id="continue-2" disabled
+              class="rounded-lg px-4 py-2 text-white bg-[var(--brand)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--brand-700)] focus:outline-none focus-visible:ring-2 brand-ring smooth"
+              aria-label="Continue to Highlight">Continue</button>
+          </div>
+        </section>
+
+        <!-- Step 3 — Highlight -->
+        <section id="step-3" class="hidden smooth" role="region" aria-labelledby="s3-title" aria-hidden="true">
+          <h2 id="s3-title" class="text-xl sm:text-2xl font-semibold">What stood out the most?</h2>
+          <div class="mt-5 grid grid-cols-1 sm:grid-cols-4 gap-3" role="group" aria-label="Select the highlight">
+            <button type="button" data-highlight="Food" class="hl-btn group w-full rounded-xl border border-slate-200 bg-white px-4 py-5 text-left shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 brand-ring smooth" aria-label="Food highlight">
+              <div class="text-2xl" aria-hidden="true">🍽</div>
+              <div class="mt-1 text-base font-medium">Food</div>
+            </button>
+            <button type="button" data-highlight="Service" class="hl-btn group w-full rounded-xl border border-slate-200 bg-white px-4 py-5 text-left shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 brand-ring smooth" aria-label="Service highlight">
+              <div class="text-2xl" aria-hidden="true">🤝</div>
+              <div class="mt-1 text-base font-medium">Service</div>
+            </button>
+            <button type="button" data-highlight="Atmosphere" class="hl-btn group w-full rounded-xl border border-slate-200 bg-white px-4 py-5 text-left shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 brand-ring smooth" aria-label="Atmosphere highlight">
+              <div class="text-2xl" aria-hidden="true">🌆</div>
+              <div class="mt-1 text-base font-medium">Atmosphere</div>
+            </button>
+            <button type="button" data-highlight="Authenticity" class="hl-btn group w-full rounded-xl border border-slate-200 bg-white px-4 py-5 text-left shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 brand-ring smooth" aria-label="Authenticity highlight">
+              <div class="text-2xl" aria-hidden="true">🌍</div>
+              <div class="mt-1 text-base font-medium">Authenticity</div>
+            </button>
+          </div>
+
+          <div class="mt-5 flex items-center justify-between gap-3">
+            <button type="button" class="btn-back rounded-lg border border-slate-300 px-4 py-2 text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 brand-ring smooth" data-back-step="2" aria-label="Go back to Dish">Back</button>
+            <button type="button" id="continue-3" disabled
+              class="rounded-lg px-4 py-2 text-white bg-[var(--brand)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--brand-700)] focus:outline-none focus-visible:ring-2 brand-ring smooth"
+              aria-label="Continue to Review">Continue</button>
+          </div>
+        </section>
+
+        <!-- Step 4 — Review (templated) -->
+        <section id="step-4" class="hidden smooth" role="region" aria-labelledby="s4-title" aria-hidden="true">
+          <h2 id="s4-title" class="text-xl sm:text-2xl font-semibold">Your review</h2>
+          <p class="mt-2 text-sm text-slate-500">We’ve drafted a polished paragraph based on your selections. You can copy as-is or make small edits.</p>
+
+          <!-- Edit toggle -->
+          <div class="mt-4 flex items-center gap-3">
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input id="editToggle" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-[var(--brand)] focus:ring-[var(--brand)]" />
+              <span class="text-sm text-slate-700">Enable editing</span>
+            </label>
+          </div>
+
+          <!-- Review textarea -->
+          <div class="mt-3">
+            <label for="reviewText" class="sr-only">Generated review text</label>
+            <textarea id="reviewText" readonly rows="6"
+              class="w-full rounded-xl border border-slate-300 focus:border-slate-400 focus:ring-2 brand-ring p-4 text-[15px] leading-6"
+              aria-describedby="copyHelp"></textarea>
+            <p id="copyHelp" class="mt-2 text-sm text-slate-500">Copy and paste to Google in the next step.</p>
+          </div>
+
+          <!-- Copy button + status -->
+          <div class="mt-4 flex items-center gap-3">
+            <button id="copyBtn" type="button"
+              class="rounded-lg px-4 py-2 text-white bg-[var(--brand)] hover:bg-[color:var(--brand-700)] focus:outline-none focus-visible:ring-2 brand-ring smooth"
+              aria-label="Copy review to clipboard">Copy</button>
+            <span id="copyStatus" class="text-sm text-slate-600" aria-live="polite"></span>
+          </div>
+
+          <div class="mt-5 flex items-center justify-between gap-3">
+            <button type="button" class="btn-back rounded-lg border border-slate-300 px-4 py-2 text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 brand-ring smooth" data-back-step="3" aria-label="Go back to Highlight">Back</button>
+            <button type="button" id="continue-4"
+              class="rounded-lg px-4 py-2 text-white bg-[var(--brand)] hover:bg-[color:var(--brand-700)] focus:outline-none focus-visible:ring-2 brand-ring smooth"
+              aria-label="Continue to Post">Continue</button>
+          </div>
+        </section>
+
+        <!-- Step 5 — Post -->
+        <section id="step-5" class="hidden smooth" role="region" aria-labelledby="s5-title" aria-hidden="true">
+          <h2 id="s5-title" class="text-xl sm:text-2xl font-semibold">Post your review</h2>
+          <p class="mt-2 text-sm text-slate-600">Tap the button to open Google Reviews. Paste your text and submit.</p>
+
+          <div class="mt-5">
+            <!-- Disabled/Enabled handled by JS -->
+            <div class="relative inline-block tooltip">
+              <a id="googleLink" target="_blank" rel="noopener noreferrer"
+                 class="inline-flex items-center justify-center rounded-lg px-4 py-3 text-white bg-[var(--brand)] hover:bg-[color:var(--brand-700)] focus:outline-none focus-visible:ring-2 brand-ring smooth disabled:opacity-40 disabled:pointer-events-none"
+                 aria-label="Post on Google"
+              >
+                <span aria-hidden="true">⭐</span>
+                <span class="ml-2">Post on Google</span>
+              </a>
+              <div id="placeIdTooltip" role="tooltip"
+                   class="tooltip-panel pointer-events-none absolute left-1/2 -translate-x-1/2 mt-2 w-max max-w-xs rounded-md bg-slate-900 px-3 py-2 text-[12px] text-white shadow-lg">
+                Ask your provider to set a Place ID.
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <button type="button" id="startOverFromPost"
+              class="rounded-lg border border-slate-300 px-4 py-2 text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 brand-ring smooth"
+              aria-label="Start over">Start over</button>
+          </div>
+        </section>
+
+        <!-- Negative screen -->
+        <section id="negative" class="hidden smooth" role="region" aria-labelledby="neg-title" aria-hidden="true">
+          <div class="text-center py-6">
+            <div class="text-4xl" aria-hidden="true">🙏</div>
+            <h2 id="neg-title" class="mt-3 text-xl sm:text-2xl font-semibold">Thank you for your honesty.</h2>
+            <p class="mt-2 text-slate-600">Your feedback has been sent to the restaurant.</p>
+            <button type="button" id="startOverNegative"
+              class="mt-6 rounded-lg border border-slate-300 px-4 py-2 text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 brand-ring smooth"
+              aria-label="Start over">Start over</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- Footer -->
+      <footer class="px-6 sm:px-8 py-5 border-t border-slate-100 text-center text-sm text-slate-500">
+        Powered by <span id="serviceName" class="font-medium brand-txt"></span>
+      </footer>
+    </section>
+  </main>
+
+  <!-- aria-live region for screen reader copy status -->
+  <div id="sr-live" class="sr-only" aria-live="polite"></div>
+
+  <!-- App Script -->
+  <script defer>
+    /* ============================
+       8) MENU DATA (array literal)
+       ============================ */
+    const MENU = [
+      // Entrées
+      { name: "chicken kebab", description: "Cubes of marinated chicken breast char-broiled on skewers. Served with rice and burgol.", price: 23.00, category: "Entrées", notes: "", aliases: ["chicken shish"] },
+      { name: "adana kebab", description: "Hand diced lamb flavored with fresh red bell peppers, gently spiced with paprika and grilled on skewers. Served with rice and burgol.", price: 24.00, category: "Entrées", notes: "", aliases: ["adana", "lamb adana"] },
+      { name: "chicken adana kebab", description: "Ground chicken flavored with fresh red bell peppers and hot peppers, grilled on skewers. Served with rice and burgol.", price: 22.00, category: "Entrées", notes: "", aliases: ["chicken adana"] },
+      { name: "shish kebab", description: "Cubes of marinated lamb char-broiled on skewers. Served with rice and burgol.", price: 29.00, category: "Entrées", notes: "", aliases: ["lamb shish"] },
+      { name: "chicken chops", description: "Skinless, boneless marinated chicken thighs, grilled to perfection. Served with rice and burgol.", price: 24.00, category: "Entrées", notes: "", aliases: [] },
+      { name: "feta chicken", description: "Sautéed chicken breast topped with fresh tomatoes and melted feta cheese, finished with a lemon garlic sauce. Served with vegetables and mashed potato.", price: 24.00, category: "Entrées", notes: "", aliases: [] },
+      { name: "pyramid chicken", description: "Sautéed chicken breast topped with sautéed mushrooms, crushed black peppercorns, dijon and a light cream sauce. Served with vegetables and mashed potato.", price: 25.00, category: "Entrées", notes: "", aliases: [] },
+      { name: "nile chicken", description: "Sautéed chicken breast topped with sliced roasted eggplant, roasted red pepper, fresh mozzarella and finished with a pink sauce. Served with vegetables and mashed potato.", price: 26.00, category: "Entrées", notes: "", aliases: [] },
+      { name: "lamb chops", description: "Select lamb chops specially marinated and char-broiled. Served with rice and burgol.", price: 39.00, category: "Entrées", notes: "", aliases: [] },
+      { name: "braised beef short ribs", description: "Slow-braised beef short ribs with fresh herbs and a demi-glace sauce. Served over couscous.", price: 32.00, category: "Entrées", notes: "", aliases: ["short ribs"] },
+      { name: "couscous beef and vegetable stew", description: "Braised beef with vegetables in a light tomato sauce. Served over couscous and topped with toasted almonds.", price: 30.00, category: "Entrées", notes: "", aliases: ["beef stew"] },
+      { name: "lamb shank", description: "Slow-braised lamb shank on the bone topped with celery, potato, carrot, and onion in a tomato sauce. Served with couscous.", price: 29.00, category: "Entrées", notes: "", aliases: [] },
+      { name: "chicken combination platter", description: "Chicken Kebab, Chicken Chops & Chicken Adana. Served with rice and burgol.", price: 46.00, category: "Entrées", notes: "serves 2", aliases: [] },
+      { name: "choice combination kebab", description: "Choose 2 of Adana Kebab, Chicken Adana Kebab, or Chicken Kebab. Served with rice and burgol.", price: 42.00, category: "Entrées", notes: "serves 2", aliases: [] },
+      { name: "sahara mixed grill", description: "Adana Kebab, Chicken Kebab, Chicken Adana Kebab, Chicken Chops and Shish Kebab. Served with rice and burgol.", price: 88.00, category: "Entrées", notes: "serves 4", aliases: ["mixed grill"] },
+
+      // Seafood Entrées
+      { name: "tilapia", description: "Tilapia filet sautéed with fresh tomato and capers in a garlic lemon sauce. Served with vegetables and mashed potato.", price: 23.00, category: "Seafood Entrées", notes: "", aliases: [] },
+      { name: "salmon", description: "Salmon prepared with leeks and fresh tomato, finished with a lemon-garlic sauce. Served with vegetables and mashed potato.", price: 28.00, category: "Seafood Entrées", notes: "", aliases: [] },
+      { name: "shrimp kebab", description: "Grilled, marinated Jumbo Shrimp served with rice and bihari.", price: 26.00, category: "Seafood Entrées", notes: "", aliases: ["shrimp"] },
+      { name: "sahara shrimp", description: "Shrimp cooked in our spicy tomato sauce. Served with vegetables and mashed potato.", price: 26.00, category: "Seafood Entrées", notes: "", aliases: [] },
+      { name: "shrimp sauté", description: "Sautéed shrimp with capers and fresh tomato, finished with a light lemon garlic sauce. Served with vegetables and mashed potato.", price: 26.00, category: "Seafood Entrées", notes: "", aliases: ["shrimp saute"] },
+
+      // Vegetarian Entrées
+      { name: "couscous vegetable stew", description: "Vegetables in a light tomato sauce, served over couscous and topped with toasted almonds.", price: 21.00, category: "Vegetarian Entrées", notes: "", aliases: ["vegetable stew"] },
+      { name: "roasted eggplant", description: "Eggplant stuffed with rice and fresh vegetables, topped with melted feta cheese.", price: 21.00, category: "Vegetarian Entrées", notes: "", aliases: ["imam bayildi"] },
+      { name: "cauliflower cake", description: "Pan sautéed, served with horseradish sauce.", price: 21.00, category: "Vegetarian Entrées", notes: "", aliases: [] },
+      { name: "falafel (entrée)", description: "Fried chickpeas mixed with vegetables. Served with rice and burgol.", price: 19.00, category: "Vegetarian Entrées", notes: "", aliases: ["falafel entree", "felafel"] },
+      { name: "stuffed bell pepper (entrée)", description: "Bell pepper stuffed with eggplant topped with fresh tomato sauce and shaved parmesan cheese. Served with rice and burgol.", price: 21.00, category: "Vegetarian Entrées", notes: "", aliases: ["stuffed pepper"] },
+
+      // Appetizers
+      { name: "hummus", description: "", price: 9.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "hummus with spiced ezme", description: "", price: 10.00, category: "Appetizers", notes: "", aliases: ["ezme hummus"] },
+      { name: "hummus with saksuka", description: "", price: 10.00, category: "Appetizers", notes: "", aliases: ["saksuka hummus"] },
+      { name: "house hummus", description: "", price: 10.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "chipotle hummus", description: "", price: 10.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "baba ghanoush", description: "", price: 9.00, category: "Appetizers", notes: "", aliases: ["baba ganoush"] },
+      { name: "eggplant dip", description: "", price: 9.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "labhne", description: "", price: 9.00, category: "Appetizers", notes: "", aliases: ["labneh"] },
+      { name: "saksuka (eggplant with sauce)", description: "", price: 9.00, category: "Appetizers", notes: "", aliases: ["saksuka"] },
+      { name: "spiced ezme", description: "", price: 9.00, category: "Appetizers", notes: "", aliases: ["ezme"] },
+      { name: "falafel (appetizer)", description: "Fried chickpeas mixed with vegetables served with cajik and tahini sauce.", price: 10.00, category: "Appetizers", notes: "", aliases: ["felafel"] },
+      { name: "stuffed bell pepper (appetizer)", description: "Bell pepper stuffed with eggplant topped with fresh tomato sauce and shaved parmesan cheese.", price: 12.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "sahara vegetarian combination", description: "Spiced ezme, cauliflower dip, hummus, eggplant salad and labhne, topped with olive oil and parsley.", price: 28.00, category: "Appetizers", notes: "", aliases: ["vegetarian combo"] },
+      { name: "calamari", description: "Fried calamari with house tomato sauce.", price: 15.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "sigara boregi (cheese roll)", description: "Phyllo scrolls stuffed with feta and dill, pan fried till golden, served with cajik sauce.", price: 9.00, category: "Appetizers", notes: "", aliases: ["sigara borek"] },
+      { name: "mediterranean shrimp", description: "Pan seared blackened shrimp, parmesan crusted and topped with a balsamic reduction.", price: 15.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "chicken fingers", description: "", price: 8.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "french fries", description: "", price: 5.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "side of rice or vegetables", description: "", price: 5.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "side of cold vegetables for dipping", description: "", price: 5.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "side of feta cheese", description: "", price: 3.00, category: "Appetizers", notes: "", aliases: [] },
+      { name: "extra pita", description: "", price: 0.50, category: "Appetizers", notes: "", aliases: [] },
+
+      // Flatbreads
+      { name: "tomato feta flatbread", description: "Sliced Jersey tomato with melted feta cheese, oregano, & extra virgin olive oil, baked in our brick oven.", price: 12.00, category: "Flatbreads", notes: "", aliases: [] },
+      { name: "fresh mozzarella flatbread", description: "Fresh mozzarella, tomato, basil, & extra virgin olive oil, baked in our brick oven and topped with parmesan cheese.", price: 12.00, category: "Flatbreads", notes: "", aliases: [] },
+      { name: "gorgonzola cheese flatbread", description: "Topped with sliced mushrooms, gorgonzola cheese, and fresh mozzarella.", price: 12.00, category: "Flatbreads", notes: "", aliases: [] },
+      { name: "artichoke pesto flatbread", description: "Topped with pesto sauce, artichoke hearts, and fresh mozzarella.", price: 12.00, category: "Flatbreads", notes: "", aliases: [] },
+
+      // Salads
+      { name: "shepherd’s salad", description: "Tomatoes, cucumbers, green peppers, red onions, parsley, white vinegar, lemon juice, salt, pepper, and extra virgin olive oil.", price: 12.00, category: "Salads", notes: "", aliases: ["shepherds salad"] },
+      { name: "tahini shepherd’s salad", description: "Tomatoes, cucumbers, green peppers, red onions, parsley, lemon juice, salt, pepper, tahini sauce and extra virgin olive oil.", price: 12.00, category: "Salads", notes: "", aliases: ["tahini shepherds"] },
+      { name: "tabouleh salad", description: "Parsley, tomatoes, scallions, and brown wheat flavored with lemon juice and extra virgin olive oil.", price: 13.00, category: "Salads", notes: "", aliases: ["tabbouleh"] },
+      { name: "moroccan couscous salad", description: "Couscous mixed with tomato, green pepper, olives, diced red onion, pine nuts, and toasted almonds finished in a lemon vinaigrette, topped with jumbo shrimp.", price: 21.00, category: "Salads", notes: "", aliases: [] },
+      { name: "fattoush salad", description: "Romaine lettuce, cucumber, tomatoes, and onions topped with toasted pita tossed with sumac, lemon juice and olive oil.", price: 11.00, category: "Salads", notes: "", aliases: [] },
+      { name: "mediterranean salad", description: "Chopped greens with grilled chicken, roasted peppers, tomatoes, pine nuts and kalamata olives finished in balsamic vinaigrette and topped with crumbled feta cheese.", price: 20.00, category: "Salads", notes: "", aliases: [] },
+      { name: "greek salad", description: "Romaine lettuce, tomatoes, cucumbers, red onion, kalamata olives, and dressed with an olive oil vinaigrette topped with feta.", price: 12.00, category: "Salads", notes: "", aliases: [] },
+
+      // Soups
+      { name: "soup of the day", description: "", price: 5.00, category: "Soups", notes: "", aliases: [] },
+      { name: "spicy red lentil soup", description: "", price: 5.00, category: "Soups", notes: "", aliases: ["red lentil"] },
+
+      // Sandwiches (11am–5pm; “No Dinners” note)
+      { name: "Adana Kebab (sandwich)", description: "11am–5pm; No Dinners.", price: 14.00, category: "Sandwiches", notes: "", aliases: ["adana sandwich"] },
+      { name: "Chicken Kebab (sandwich)", description: "11am–5pm; No Dinners.", price: 13.00, category: "Sandwiches", notes: "", aliases: ["chicken kebab sandwich"] },
+      { name: "Chicken Adana Kebab (sandwich)", description: "11am–5pm; No Dinners.", price: 12.00, category: "Sandwiches", notes: "", aliases: ["chicken adana sandwich"] },
+      { name: "Felafel (sandwich)", description: "11am–5pm; No Dinners.", price: 10.00, category: "Sandwiches", notes: "", aliases: ["falafel sandwich", "falafel"] },
+      { name: "baba ghanoush (sandwich)", description: "11am–5pm; No Dinners.", price: 10.00, category: "Sandwiches", notes: "", aliases: [] },
+      { name: "hummus (sandwich)", description: "11am–5pm; No Dinners.", price: 10.00, category: "Sandwiches", notes: "", aliases: [] },
+
+      // Desserts
+      { name: "keskül", description: "", price: 7.00, category: "Desserts", notes: "", aliases: ["keskul"] },
+      { name: "baked rice pudding", description: "", price: 8.00, category: "Desserts", notes: "", aliases: [] },
+      { name: "brown top pudding / kazandibi", description: "", price: 7.00, category: "Desserts", notes: "", aliases: ["kazandibi"] },
+      { name: "baklava", description: "", price: 7.00, category: "Desserts", notes: "", aliases: [] },
+      { name: "tiramisu", description: "", price: 7.00, category: "Desserts", notes: "", aliases: [] },
+      { name: "panna cotta", description: "", price: 8.00, category: "Desserts", notes: "", aliases: [] },
+      { name: "tartufo ice cream", description: "", price: 8.00, category: "Desserts", notes: "", aliases: [] },
+      { name: "chocolate lava cake", description: "", price: 8.00, category: "Desserts", notes: "", aliases: [] },
+
+      // Beverages
+      { name: "san pellegrino sparkling water", description: "", price: 6.00, category: "Beverages", notes: "", aliases: ["sparkling water", "pellegrino"] },
+      { name: "juices", description: "Mango, Guava, Cocktail Nectar, Cranberry, or Apple.", price: 3.50, category: "Beverages", notes: "", aliases: ["juice"] },
+      { name: "soda", description: "Coke, Diet Coke, Ginger Ale, Sprite, or Orange.", price: 3.00, category: "Beverages", notes: "", aliases: ["soft drink"] },
+      { name: "iced tea & lemonade", description: "Lemonade, Rosewater Iced Tea, or Rosewater Lemonade.", price: 3.00, category: "Beverages", notes: "", aliases: ["iced tea", "lemonade"] },
+
+      // Coffee & Tea
+      { name: "turkish coffee", description: "single 4.00 / double 5.00", price: 4.00, category: "Coffee & Tea", notes: "", aliases: [] },
+      { name: "espresso", description: "single 3.00 / double 4.00", price: 3.00, category: "Coffee & Tea", notes: "", aliases: [] },
+      { name: "cappuccino", description: "", price: 4.00, category: "Coffee & Tea", notes: "", aliases: [] },
+      { name: "iced cappuccino", description: "", price: 5.00, category: "Coffee & Tea", notes: "", aliases: [] },
+      { name: "coffee", description: "", price: 3.00, category: "Coffee & Tea", notes: "", aliases: ["drip coffee"] },
+      { name: "café mocha", description: "", price: 5.00, category: "Coffee & Tea", notes: "", aliases: ["cafe mocha"] },
+      { name: "café latte", description: "", price: 4.00, category: "Coffee & Tea", notes: "", aliases: ["cafe latte", "latte"] },
+      { name: "hot chocolate", description: "", price: 3.00, category: "Coffee & Tea", notes: "", aliases: [] },
+      { name: "herbal hot teas", description: "Turkish, Green, Mint, Jasmine, or Lemon and Ginger.", price: 3.00, category: "Coffee & Tea", notes: "", aliases: ["tea", "herbal tea"] },
+    ];
+
+    /* ============================
+       2) THEME from CONFIG
+       ============================ */
+    function applyBrandColor() {
+      const r = document.documentElement;
+      r.style.setProperty('--brand', CONFIG.brandPrimary);
+      // Derive slightly darker shade for hover if possible (simple fallback)
+      // Not perfect, but keeps within single-file constraint
+      r.style.setProperty('--brand-700', CONFIG.brandPrimary);
+    }
+
+    /* ============================
+       STATE
+       ============================ */
+    const state = {
+      step: 0, // 0..4 ; negative screen separate
+      experience: null, // "Excellent" | "Good" | "Not great"
+      dish: null,       // menu item object
+      highlight: null,  // "Food" | "Service" | "Atmosphere" | "Authenticity"
+      reviewText: "",
+      visited: new Set([0]),
+      category: "All",
+      search: "",
+    };
+
+    /* ============================
+       HELPERS
+       ============================ */
+    const qs = (sel, root = document) => root.querySelector(sel);
+    const qsa = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+    function setStep(next) {
+      state.step = next;
+      state.visited.add(next);
+      // Toggle sections
+      const steps = [qs("#step-1"), qs("#step-2"), qs("#step-3"), qs("#step-4"), qs("#step-5")];
+      steps.forEach((sec, idx) => {
+        if (!sec) return;
+        const active = idx === next;
+        sec.classList.toggle("hidden", !active);
+        sec.setAttribute("aria-hidden", (!active).toString());
+      });
+      // Hide negative when in positive flow
+      qs("#negative").classList.add("hidden");
+      qs("#negative").setAttribute("aria-hidden", "true");
+
+      renderStepper();
+      if (next === 1) renderDishList();
+      if (next === 3) renderReview();
+      if (next === 4) renderGoogleLink();
+    }
+
+    function renderStepper() {
+      qsa("[data-step-index]").forEach(li => {
+        const idx = Number(li.dataset.stepIndex);
+        const dot = li.firstElementChild;
+        // base
+        dot.classList.remove("brand-bg", "bg-slate-300", "bg-slate-200");
+        // visited/current styles
+        if (idx === state.step) {
+          dot.classList.add("brand-bg");
+        } else if (state.visited.has(idx)) {
+          dot.classList.add("bg-slate-300");
+        } else {
+          dot.classList.add("bg-slate-200");
+        }
+      });
+    }
+
+    const CATEGORY_CHIPS = [
+      { label: "All", key: "All" },
+      { label: "Entrées", key: "Entrées" },
+      { label: "Seafood", key: "Seafood Entrées" },
+      { label: "Vegetarian", key: "Vegetarian Entrées" },
+      { label: "Appetizers", key: "Appetizers" },
+      { label: "Flatbreads", key: "Flatbreads" },
+      { label: "Salads", key: "Salads" },
+      { label: "Soups", key: "Soups" },
+      { label: "Sandwiches", key: "Sandwiches" },
+      { label: "Desserts", key: "Desserts" },
+      { label: "Beverages", key: "Beverages" },
+      { label: "Coffee & Tea", key: "Coffee & Tea" },
+    ];
+
+    function renderCategoryChips() {
+      const wrap = qs("#categoryChips");
+      wrap.innerHTML = "";
+      CATEGORY_CHIPS.forEach(chip => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "rounded-full border px-3 py-1 text-sm smooth " +
+          (state.category === chip.key
+            ? "text-white bg-[var(--brand)] border-transparent focus:outline-none focus-visible:ring-2 brand-ring"
+            : "border-slate-300 text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 brand-ring");
+        btn.textContent = chip.label;
+        btn.setAttribute("role", "tab");
+        btn.setAttribute("aria-label", `Filter ${chip.label}`);
+        btn.addEventListener("click", () => {
+          state.category = chip.key;
+          renderCategoryChips();
+          renderDishList();
+          // Show salads add-ons note when Salads selected
+          qs("#saladAddOnsNote").classList.toggle("hidden", chip.key !== "Salads");
+        });
+        wrap.appendChild(btn);
+      });
+    }
+
+    function filterMenu() {
+      const term = state.search.trim().toLowerCase();
+      return MENU.filter(item => {
+        const catOk = state.category === "All" || item.category === state.category;
+        if (!catOk) return false;
+        if (!term) return true;
+        const hay = [
+          item.name,
+          item.description || "",
+          ...(item.aliases || []),
+        ].join(" ").toLowerCase();
+        return hay.includes(term);
+      });
+    }
+
+    function renderDishList() {
+      const list = qs("#dishList");
+      const items = filterMenu();
+      list.innerHTML = "";
+
+      if (items.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "p-6 text-center text-slate-500";
+        empty.textContent = "No dishes match your search.";
+        list.appendChild(empty);
+        qs("#continue-2").disabled = !state.dish;
+        return;
+      }
+
+      items.forEach((item, idx) => {
+        const isSelected = state.dish && state.dish.name === item.name && state.dish.category === item.category;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "w-full text-left p-4 border-b last:border-b-0 border-slate-200 smooth focus:outline-none focus-visible:ring-2 brand-ring " +
+          (isSelected ? "bg-[var(--brand-50)]" : "bg-white hover:bg-slate-50");
+        btn.setAttribute("role", "option");
+        btn.setAttribute("aria-selected", isSelected ? "true" : "false");
+        btn.setAttribute("aria-label", `Select ${item.name} ${item.category}`);
+
+        const nameLine = document.createElement("div");
+        nameLine.className = "flex items-baseline justify-between gap-3";
+        const name = document.createElement("h3");
+        name.className = "font-medium";
+        name.textContent = item.name;
+        const price = document.createElement("span");
+        price.className = "text-sm text-slate-600";
+        price.textContent = `$${item.price.toFixed(2)}`;
+        nameLine.appendChild(name);
+        nameLine.appendChild(price);
+
+        const desc = document.createElement("p");
+        desc.className = "mt-1 text-sm text-slate-600 line-clamp-2";
+        desc.textContent = item.description || "";
+
+        const notes = document.createElement("p");
+        notes.className = "mt-1 text-xs text-slate-500";
+        notes.textContent = item.notes ? String(item.notes) : "";
+        if (!item.notes) notes.classList.add("hidden");
+
+        btn.appendChild(nameLine);
+        if (item.description) btn.appendChild(desc);
+        btn.appendChild(notes);
+
+        btn.addEventListener("click", () => {
+          state.dish = item;
+          // enable continue
+          qs("#continue-2").disabled = false;
+          // refresh selection highlight
+          renderDishList();
+        });
+
+        list.appendChild(btn);
+      });
+
+      qs("#continue-2").disabled = !state.dish;
+    }
+
+    function generateReview() {
+      const rName = CONFIG.restaurantName;
+      const xp = state.experience; // "Good" | "Excellent"
+      const dish = state.dish;
+      const hl = state.highlight;
+
+      // Openers
+      const openers = xp === "Excellent"
+        ? [
+            `Dinner at ${rName} was excellent from start to finish.`,
+            `I had a lovely evening at ${rName}.`,
+          ]
+        : [
+            `I stopped by ${rName} and had a genuinely good experience.`,
+            `My visit to ${rName} was enjoyable and well worth it.`,
+          ];
+      const opener = openers[0];
+
+      // Dish line
+      const descriptor = dish.description ? ` — ${dish.description} —` : "";
+      const dishLines = [
+        `The ${dish.name}${descriptor} was prepared with care and balanced flavors.`,
+        `I especially enjoyed the ${dish.name}, which was beautifully cooked and well-seasoned.`,
+      ];
+      const dishLine = dish.description ? dishLines[0] : dishLines[1];
+
+      // Highlight line
+      let emoji = "";
+      let hlLine = "";
+      if (hl === "Food") { hlLine = "The kitchen’s attention to detail really showed."; emoji = "🍽"; }
+      if (hl === "Service") { hlLine = "Service was attentive, warm, and well-timed."; emoji = "🤝"; }
+      if (hl === "Atmosphere") { hlLine = "The dining room felt calm and welcoming, perfect for conversation."; emoji = "🌆"; }
+      if (hl === "Authenticity") { hlLine = "The flavors felt thoughtful and true to the cuisine."; emoji = "🌍"; }
+
+      // Closer
+      const closer = xp === "Excellent"
+        ? "Highly recommended for a relaxed, refined meal."
+        : "I’m already looking forward to the next visit.";
+
+      // Emoji policy: one or two max
+      const sparkle = xp === "Excellent" ? " ✨" : "";
+      const maybeEmoji = CONFIG.useEmojis ? ` ${emoji}` : "";
+      const maybeSparkle = CONFIG.useEmojis ? sparkle : "";
+
+      // Assemble 4 sentences ~ 80–110 words
+      const sentences = [
+        opener,
+        dishLine,
+        `${hlLine}${maybeEmoji}`,
+        closer + maybeSparkle,
+      ];
+
+      return sentences.join(" ");
+    }
+
+    function renderReview() {
+      // Only regenerate when stepping into review for the first time or when state changes
+      state.reviewText = generateReview();
+      const ta = qs("#reviewText");
+      ta.value = state.reviewText;
+      qs("#copyStatus").textContent = "";
+      qs("#sr-live").textContent = "";
+    }
+
+    function renderGoogleLink() {
+      const a = qs("#googleLink");
+      const tip = qs("#placeIdTooltip");
+      const place = CONFIG.googlePlaceId.trim();
+      if (place) {
+        const url = `https://search.google.com/local/writereview?placeid=${encodeURIComponent(place)}`;
+        a.setAttribute("href", url);
+        a.classList.remove("disabled:opacity-40", "pointer-events-none");
+        a.removeAttribute("aria-disabled");
+        tip.style.display = "none";
+      } else {
+        a.removeAttribute("href");
+        a.setAttribute("aria-disabled", "true");
+        tip.style.display = "block";
+      }
+    }
+
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      // Fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "absolute";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); }
+      finally { document.body.removeChild(ta); }
+      return Promise.resolve();
+    }
+
+    // Negative feedback POST (non-blocking placeholder)
+    function sendNegativeFeedbackIfConfigured() {
+      if (!CONFIG.negativeFeedbackEndpoint) return;
+      try {
+        const payload = {
+          restaurantName: CONFIG.restaurantName,
+          timestampISO: new Date().toISOString(),
+          selection: { experience: "Not great" },
+          optionalComment: "",
+          userAgent: navigator.userAgent,
+        };
+        fetch(CONFIG.negativeFeedbackEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch(() => {/* swallow errors; UI always shows confirmation */});
+      } catch (_) { /* swallow */ }
+    }
+
+    /* ============================
+       EVENT WIRING
+       ============================ */
+    function startOver() {
+      state.step = 0;
+      state.experience = null;
+      state.dish = null;
+      state.highlight = null;
+      state.reviewText = "";
+      state.visited = new Set([0]);
+      state.category = "All";
+      state.search = "";
+      // reset UI bits
+      qs("#dishSearch").value = "";
+      renderCategoryChips();
+      setStep(0);
+    }
+
+    function init() {
+      applyBrandColor();
+      // brand text
+      qs("#brandName").textContent = CONFIG.restaurantName;
+      qs("#serviceName").textContent = CONFIG.serviceName;
+      // heading emoji preference
+      qs("#s1-emoji").textContent = CONFIG.useEmojis ? "⭐ " : "";
+
+      // Experience buttons
+      qs("#btn-excellent").addEventListener("click", () => { state.experience = "Excellent"; setStep(1); });
+      qs("#btn-good").addEventListener("click", () => { state.experience = "Good"; setStep(1); });
+      qs("#btn-bad").addEventListener("click", () => {
+        state.experience = "Not great";
+        // Show negative screen and optionally POST
+        sendNegativeFeedbackIfConfigured();
+        qsa("#step-1, #step-2, #step-3, #step-4, #step-5").forEach(sec => {
+          sec.classList.add("hidden"); sec.setAttribute("aria-hidden", "true");
+        });
+        const neg = qs("#negative");
+        neg.classList.remove("hidden");
+        neg.setAttribute("aria-hidden", "false");
+        renderStepper(); // keep previous visited dot(s)
+      });
+
+      // Category chips & dish list
+      renderCategoryChips();
+      renderDishList();
+
+      // Search box
+      qs("#dishSearch").addEventListener("input", (e) => {
+        state.search = e.target.value;
+        renderDishList();
+      });
+      qs("#clearSearch").addEventListener("click", () => {
+        state.search = "";
+        qs("#dishSearch").value = "";
+        renderDishList();
+        qs("#dishSearch").focus();
+      });
+
+      // Step 2 continue/back
+      qs("#continue-2").addEventListener("click", () => setStep(2));
+      qsa(".btn-back").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const backTo = Number(btn.dataset.backStep);
+          setStep(backTo);
+        });
+      });
+
+      // Step 3 highlight
+      qsa(".hl-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          qsa(".hl-btn").forEach(b => b.classList.remove("bg-[var(--brand-50)]"));
+          btn.classList.add("bg-[var(--brand-50)]");
+          state.highlight = btn.dataset.highlight;
+          qs("#continue-3").disabled = false;
+        });
+      });
+      qs("#continue-3").addEventListener("click", () => setStep(3));
+
+      // Step 4 review
+      qs("#editToggle").addEventListener("change", (e) => {
+        const ta = qs("#reviewText");
+        if (e.target.checked) {
+          ta.removeAttribute("readonly");
+          ta.focus();
+          ta.setSelectionRange(ta.value.length, ta.value.length);
+        } else {
+          ta.setAttribute("readonly", "");
+        }
+      });
+
+      qs("#copyBtn").addEventListener("click", async () => {
+        const txt = qs("#reviewText").value;
+        await copyText(txt);
+        const status = qs("#copyStatus");
+        status.textContent = "Copied";
+        qs("#sr-live").textContent = "Copied to clipboard";
+        setTimeout(() => { status.textContent = ""; }, 1600);
+      });
+
+      qs("#continue-4").addEventListener("click", () => setStep(4));
+
+      // Step 5 — link + start over
+      renderGoogleLink();
+      qs("#startOverFromPost").addEventListener("click", startOver);
+      qs("#startOverNegative").addEventListener("click", startOver);
+
+      // Initial step render
+      setStep(0);
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
